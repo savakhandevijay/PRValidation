@@ -20,7 +20,7 @@ The current setup supports:
 ## 1. Project Structure
 
 ```text
-PRCheck/
+PR Validation Checks/
 │
 ├── composer.json
 │
@@ -73,7 +73,7 @@ PRCheck/
 | `scripts` | Validation scripts |
 | `scripts/checks` | Business/process validation scripts |
 | `phpstan` | Custom PHPStan architecture rules |
-| `vendor` | PRCheck/tooling Composer dependencies |
+| `vendor` | PR Validation Checks/tooling Composer dependencies |
 | `src/www/wss2/vendor` | Actual Yii2 application dependencies |
 | `var/phpstan` | PHPStan cache/temp files |
 | `credentials` | Local-only Google credentials; never commit |
@@ -130,7 +130,7 @@ Install:
 - Python 3.x
 - Bash or POSIX-compatible `/bin/sh`
 
-The PHP version used by PRCheck should match the PHP version used by the target application as closely as possible.
+The PHP version used by PR Validation Checks should match the PHP version used by the target application as closely as possible.
 
 Check:
 
@@ -154,7 +154,7 @@ git --version
 
 # 4. Install Composer Dependencies
 
-From the PRCheck root:
+From the PR Validation Checks root:
 
 ```bash
 composer install
@@ -168,7 +168,7 @@ The actual Yii2 application has its own Composer dependencies under:
 src/www/wss2/vendor/
 ```
 
-Do not replace the application dependency tree with the PRCheck dependency tree.
+Do not replace the application dependency tree with the PR Validation Checks dependency tree.
 
 ---
 
@@ -1386,7 +1386,7 @@ Only when all required checks pass should the PR move to human technical review.
 
 # 27. Design Principle
 
-The purpose of PRCheck is not to eliminate human review.
+The purpose of PR Validation Checks is not to eliminate human review.
 
 The purpose is to remove repetitive human review.
 
@@ -1452,7 +1452,7 @@ The key rule should remain:
 git clone <repository-url>
 
 # 2. Enter project
-cd PRCheck
+cd PRValidation
 
 # 3. Install PHP dependencies
 composer install
@@ -1519,4 +1519,4 @@ Automated validation
                             More technical focus
 ```
 
-PRCheck is intended to turn repeated engineering knowledge and review practices into executable checks while keeping human technical judgment where it provides the most value.
+PR Validation Checks is intended to turn repeated engineering knowledge and review practices into executable checks while keeping human technical judgment where it provides the most value.
