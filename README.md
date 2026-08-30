@@ -1,4 +1,4 @@
-# PRCheck
+# PR Code Validation
 
 Automated pull-request validation toolkit for a legacy PHP/Yii2 application.
 
