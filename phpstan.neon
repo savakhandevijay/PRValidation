@@ -1,0 +1,38 @@
+includes:
+        - phpstan-baseline.neon
+parameters:
+    level: 0
+
+    bootstrapFiles:
+        - %currentWorkingDirectory%/src/www/wss2/vendor/autoload.php
+        - %currentWorkingDirectory%/src/www/wss2/vendor/yiisoft/yii2/Yii.php
+
+    # These are the files PHPStan should actually ANALYSE. 
+    # # During normal/full analysis this can remain here. 
+    
+    paths: 
+        - src/www/wss2 
+    
+    # These directories are used only for discovering classes, 
+    # interfaces and traits when changed files are analysed. 
+    # # PHPStan does NOT report errors from these files merely because 
+    # they are listed here. 
+    
+    scanDirectories: 
+        - src/www/wss2/api 
+        - src/www/wss2/common
+
+    excludePaths:
+        - src/www/wss2/vendor/*
+        - src/www/wss2/temp/*
+        - src/www/wss2/api/runtime/*
+        - src/www/wss2/api/web/assets/*
+        - src/www/wss2/grpcadapter/*
+        - src/www/wss2/common/tests/*
+
+    tmpDir: var/phpstan
+
+    reportUnmatchedIgnoredErrors: false
+    
+rules:
+    - PHPStanRules\Rules\Yii2\NoActiveRecordInControllerRule

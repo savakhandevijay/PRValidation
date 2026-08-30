@@ -1,0 +1,45 @@
+{
+    "name": "cex-it/prcheck",
+    "version": "1.0.0",
+    "config": {
+        "platform": {
+            "php": "8.4.1"
+        },
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PHPStanRules\\": "phpstan/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./src/www/wss2",
+            "options": {
+                "symlink": false
+            }
+        }
+    ],
+    "scripts": {
+        "lint": [
+            "sh ./scripts/lint-changed-files.sh develop"
+        ],
+        "cs-check": "sh ./scripts/cs-changed-files.sh develop",
+        "stan": "@php vendor/bin/phpstan analyse --memory-limit=1G",
+        "stan-changed": "sh ./scripts/stan-changed-files.sh develop --memory-limit=1G",
+        "quality": [
+            "@composer validate --strict",
+            "@lint",
+            "@cs-check",
+            "@stan"
+        ]
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/extension-installer": "^1.4"
+    }
+}
