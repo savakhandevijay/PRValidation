@@ -38,8 +38,6 @@ final class NoActiveRecordInControllerRule implements Rule
 
     public function processNode(Node $node, Scope $scope): array
     {
-        var_dump(get_class($node));
-	    return [];
         if (!$node instanceof StaticCall) {
             return [];
         }

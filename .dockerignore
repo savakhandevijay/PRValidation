@@ -1,0 +1,12 @@
+# Folders to exclude
+vendor/
+var/
+src/
+logs
+command.sh
+
+# Recommended DevOps defaults
+.git/
+.gitignore
+Dockerfile
+.dockerignore

@@ -2,9 +2,6 @@
     "name": "cex-it/prvalidation",
     "version": "1.0.0",
     "config": {
-        "platform": {
-            "php": "8.4.1"
-        },
         "allow-plugins": {
             "phpstan/extension-installer": true
         }
@@ -14,22 +11,12 @@
             "PHPStanRules\\": "phpstan/"
         }
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "./src/www/wss2",
-            "options": {
-                "symlink": false
-            }
-        }
-    ],
     "scripts": {
         "lint": [
             "sh ./scripts/lint-changed-files.sh develop"
         ],
         "cs-check": "sh ./scripts/cs-changed-files.sh develop",
-        "stan": "@php vendor/bin/phpstan analyse --memory-limit=1G",
-        "stan-changed": "sh ./scripts/stan-changed-files.sh develop --memory-limit=1G",
+        "stan": "sh ./scripts/stan-changed-files.sh develop --memory-limit=1G",
         "quality": [
             "@composer validate --strict",
             "@lint",

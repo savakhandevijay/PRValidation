@@ -1,0 +1,10 @@
+services:
+  app:
+    image: pr-validator:latest
+    container_name: prvalidation
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./src:/var/www/app/src
+      - ./scripts:/var/www/app/scripts
+      - ./logs:/var/logs
