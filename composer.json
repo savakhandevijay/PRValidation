@@ -13,9 +13,10 @@
     },
     "scripts": {
         "lint": [
-            "sh ./scripts/lint-changed-files.sh develop"
+            "sh ./scripts/lint-changed-files.sh"
         ],
         "cs-check": "sh ./scripts/cs-changed-files.sh develop",
+        "cs-fix": "php -d memory_limit=1G ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php",
         "stan": "sh ./scripts/stan-changed-files.sh develop --memory-limit=1G",
         "quality": [
             "@composer validate --strict",

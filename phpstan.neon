@@ -1,11 +1,13 @@
-includes:
-        - phpstan-baseline.neon
+
 parameters:
-    level: 0
+    level: 6
 
     bootstrapFiles:
+        - %currentWorkingDirectory%/src/www/wss2/common/config/index.php
         - %currentWorkingDirectory%/src/www/wss2/vendor/autoload.php
         - %currentWorkingDirectory%/src/www/wss2/vendor/yiisoft/yii2/Yii.php
+        - %currentWorkingDirectory%/src/www/wss2/common/config/constants.php
+        - %currentWorkingDirectory%/src/www/wss2/common/config/aliases.php
 
     # These are the files PHPStan should actually ANALYSE. 
     # # During normal/full analysis this can remain here. 
@@ -19,8 +21,11 @@ parameters:
     # they are listed here. 
     
     scanDirectories: 
-        - src/www/wss2/api 
         - src/www/wss2/common
+        - src/www/wss2/api
+    
+    stubFiles:
+        - phpstan/stubs/yii-application.stub
 
     excludePaths:
         - src/www/wss2/vendor/*

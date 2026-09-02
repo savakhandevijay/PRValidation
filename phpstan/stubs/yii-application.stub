@@ -1,0 +1,13 @@
+<?php
+
+namespace yii\base;
+
+/**
+ * @property-read \common\components\Genutils $Genutils
+ * @property-read common\components\Mailutils $Mailutils
+ * @property-read \yii\queue\db\Queue $queue
+ * @property-read \yii\symfonymailer\Mailer $mailer
+ */
+class Application
+{
+}

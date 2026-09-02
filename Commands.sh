@@ -8,3 +8,6 @@ vendor/bin/phpstan analyse --memory-limit=1G --generate-baseline=phpstan-baselin
 grep -F "unknown class yii\\" phpstan-errors.txt | head -50
 grep -o '"message"[^,]*' phpstan-error.json
 find . -name 'phpstan*.neon' -o -name 'phpstan*.neon.dist'
+grep -R "'Genutils'" src/www/wss2 --include="*.php"
+
+vendor/bin/phpstan clear-result-cache
