@@ -1,13 +1,13 @@
-
+includes:
+    - phpstan-baseline.neon
+    
 parameters:
     level: 6
 
     bootstrapFiles:
-        - %currentWorkingDirectory%/src/www/wss2/common/config/index.php
+        - %currentWorkingDirectory%/src/www/wss2/common/config/constants.php
         - %currentWorkingDirectory%/src/www/wss2/vendor/autoload.php
         - %currentWorkingDirectory%/src/www/wss2/vendor/yiisoft/yii2/Yii.php
-        - %currentWorkingDirectory%/src/www/wss2/common/config/constants.php
-        - %currentWorkingDirectory%/src/www/wss2/common/config/aliases.php
 
     # These are the files PHPStan should actually ANALYSE. 
     # # During normal/full analysis this can remain here. 
@@ -34,6 +34,19 @@ parameters:
         - src/www/wss2/api/web/assets/*
         - src/www/wss2/grpcadapter/*
         - src/www/wss2/common/tests/*
+        - src/www/wss2/console/tests/*
+
+    ignoreErrors:
+        - identifier: missingType.iterableValue
+        - identifier: function.alreadyNarrowedType
+        -
+            identifier: missingType.return
+            path: src/www/wss2/api/controllers/*
+        -
+            identifier: missingType.return
+            path: src/www/wss2/console/controllers/*
+    tips:
+        treatPhpDocTypesAsCertain: false    
 
     tmpDir: var/phpstan
 

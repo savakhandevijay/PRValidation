@@ -10,3 +10,4 @@ command.sh
 .gitignore
 Dockerfile
 .dockerignore
+.venv/
