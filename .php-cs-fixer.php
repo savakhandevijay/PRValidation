@@ -23,6 +23,7 @@ $finder = Finder::create()
 
 return (new Config())
     ->setRiskyAllowed(false)
+    ->setCacheFile(__DIR__ . '/.php-cs-fixer.cache')
     ->setRules([
         '@PSR12' => true,
         '@PER-CS' => true,
