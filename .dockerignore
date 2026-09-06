@@ -1,13 +1,16 @@
-# Folders to exclude
-vendor/
-var/
-src/
+# Updated pattern format
+vendor
+var
+src
 logs
+scripts/config
 command.sh
-
-# Recommended DevOps defaults
-.git/
+docker-compose.yml
+.git
 .gitignore
+.env
+.vscode
+.idea
+Readme.md
 Dockerfile
 .dockerignore
-.venv/

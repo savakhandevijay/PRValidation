@@ -14,6 +14,7 @@ RUN apk add --no-cache \
     cronie \
     net-tools \
     python3 \
+    py3-pip \
     supervisor \
     figlet \
     sudo \
@@ -66,11 +67,12 @@ WORKDIR /var/www/app
 ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Docker Cache Layering: Install dependencies first
-COPY ./composer.json composer.lock* ./
+COPY composer.json composer.lock*  ./
 RUN composer install --prefer-dist --no-progress --no-autoloader
 
-# Copy application files (filtered by your .dockerignore)
 COPY . .
+RUN pip3 install --no-cache-dir --break-system-packages  -r scripts/requirements.txt
+
 
 # Generate optimized production autoloader
 RUN composer dump-autoload --optimize

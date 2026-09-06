@@ -1,3 +1,5 @@
 vendor
 var/phpstan
-src/
+# src/
+scripts/config/google-service-account.json
+.venv/
