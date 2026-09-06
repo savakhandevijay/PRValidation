@@ -35,6 +35,7 @@ parameters:
         - src/www/wss2/grpcadapter/*
         - src/www/wss2/common/tests/*
         - src/www/wss2/console/tests/*
+        - src/www/unittest/*
 
     ignoreErrors:
         - identifier: missingType.iterableValue

@@ -1,10 +1,19 @@
 services:
   app:
-    image: pr-validator:latest
+    image: prchecks:latest
     container_name: prvalidation
     tty: true
     stdin_open: true
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/google-service-account.json
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID}
+      GOOGLE_SHEET_NAME: 'Sept-2026'
     volumes:
       - ./src:/var/www/app/src
-      - ./scripts:/var/www/app/scripts
       - ./logs:/var/logs
+      - ./scripts/config/google-service-account.json:/run/secrets/google-service-account.json:ro
+    secrets:
+      - google-service-account
+secrets:
+  google-service-account:
+    file: ./scripts/config/google-service-account.json

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import subprocess
 import sys
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -13,33 +14,118 @@ from google.oauth2.service_account import Credentials
 # Configuration
 # ============================================================
 
-GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "Checklist")
+# Git repository containing the feature branch
+GIT_REPO_DIR = os.getenv(
+    "GIT_REPO_DIR",
+    "/var/www/app/src",
+)
 
-# Values considered valid/completed
+# Google configuration
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+
+# We no longer need GOOGLE_SHEET_NAME because we search
+# all worksheets/tabs.
+#
+# Example:
+#
+# January
+# February
+# March
+# April
+#
+# The Jira case can exist in any of them.
+
+
+# ============================================================
+# Checklist Answer Configuration
+# ============================================================
+
+# These answers are considered successful.
 VALID_ANSWERS = {
     "yes",
     "na",
     "n/a",
+    "todo"
 }
 
-# Values considered explicitly failed
+# These answers are considered failed.
 INVALID_ANSWERS = {
     "no",
 }
 
-# Rows containing these values in column A are section/document
-# headings rather than actual checklist questions.
+
+# Regex based valid answers.
+#
+# Example:
+#   DB-123       -> valid
+#   DB-12345     -> valid
+#   DB-ABC       -> invalid
+#
+VALID_ANSWER_PATTERNS = [
+    r"^DB-\d+$",
+]
+
+
+# Spreadsheet rows which are headings/document references
+# rather than actual checklist questions.
+#
+# These rows are skipped during validation.
 SKIP_EXACT_VALUES = {
     "PHP checklist",
     "Code review guidelines",
+    "Update caching doc if caching is added",
     "API reference doc",
     "WSS versioning doc",
     "WSS config doc - WIP",
-    "WSS Appsettings Key List",
-    "PII checklist",
+    "Add Qmetry Cases",
+    "Update deployment guide",
     "Deployment guide",
 }
+
+
+# ============================================================
+# Utility Functions
+# ============================================================
+
+def normalize(value: str) -> str:
+    """
+    Normalize a spreadsheet value for comparison.
+    """
+
+    return value.strip().casefold()
+
+
+def is_valid_regex_answer(answer: str) -> bool:
+    """
+    Check whether an answer matches one of the configured
+    valid regular expressions.
+    """
+
+    answer = answer.strip()
+
+    for pattern in VALID_ANSWER_PATTERNS:
+        if re.fullmatch(pattern, answer, re.IGNORECASE):
+            return True
+
+    return False
+
+
+def is_section_heading(question: str) -> bool:
+    """
+    Determine whether a row is a section/document heading
+    instead of an actual checklist question.
+    """
+
+    normalized = normalize(question)
+
+    if not normalized: 
+        return True 
+    if normalized in { 
+        normalize(value) for value in SKIP_EXACT_VALUES 
+    }: 
+        return True 
+    
+    return False
 
 
 # ============================================================
@@ -47,12 +133,16 @@ SKIP_EXACT_VALUES = {
 # ============================================================
 
 def get_current_git_branch() -> str:
-    """Return the current Git branch name."""
+    """
+    Get the current Git branch from the configured repository.
+    """
 
     try:
         result = subprocess.run(
             [
                 "git",
+                "-C",
+                GIT_REPO_DIR,
                 "rev-parse",
                 "--abbrev-ref",
                 "HEAD",
@@ -65,34 +155,69 @@ def get_current_git_branch() -> str:
         branch = result.stdout.strip()
 
         if not branch:
-            raise RuntimeError("Unable to determine Git branch.")
+            raise RuntimeError(
+                "Unable to determine Git branch."
+            )
 
-        # Do not run checklist against detached HEAD
         if branch == "HEAD":
             raise RuntimeError(
-                "Repository is in detached HEAD state. "
-                "Please checkout the feature branch."
+                "Repository is in detached HEAD state."
             )
 
         return branch
 
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(
-            "Unable to determine current Git branch. "
-            "Make sure this command is executed inside a Git repository."
+            f"Unable to determine Git branch from "
+            f"{GIT_REPO_DIR}."
         ) from exc
+
+
+def get_jira_case_from_branch(branch_name: str) -> str:
+    """
+    Convert Git branch name into Jira case number.
+
+    Examples:
+
+        feature-wss-15056 -> wss-15056
+        hotfix-wss-15056  -> wss-15056
+        wss-15056         -> wss-15056
+    """
+
+    branch = branch_name.strip()
+
+    # Remove feature- or hotfix- prefix.
+    #
+    # Case insensitive:
+    #
+    # feature-wss-15056
+    # FEATURE-wss-15056
+    # hotfix-wss-15056
+    # HOTFIX-wss-15056
+    #
+    branch = re.sub(
+        r"^(feature|hotfix)-",
+        "",
+        branch,
+        flags=re.IGNORECASE,
+    )
+
+    return branch
 
 
 # ============================================================
 # Google Sheets
 # ============================================================
 
-def connect_to_google_sheet():
-    """Connect to Google Sheets using a service account."""
+def connect_to_google_spreadsheet():
+    """
+    Authenticate and return the Google Spreadsheet object.
+    """
 
     if not GOOGLE_SHEET_ID:
         raise RuntimeError(
-            "GOOGLE_SHEET_ID environment variable is not configured."
+            "GOOGLE_SHEET_ID environment variable "
+            "is not configured."
         )
 
     credentials_file = os.getenv(
@@ -101,8 +226,14 @@ def connect_to_google_sheet():
 
     if not credentials_file:
         raise RuntimeError(
-            "GOOGLE_APPLICATION_CREDENTIALS environment variable "
-            "is not configured."
+            "GOOGLE_APPLICATION_CREDENTIALS environment "
+            "variable is not configured."
+        )
+
+    if not os.path.isfile(credentials_file):
+        raise RuntimeError(
+            f"Google credentials file does not exist: "
+            f"{credentials_file}"
         )
 
     scopes = [
@@ -117,122 +248,120 @@ def connect_to_google_sheet():
 
     client = gspread.authorize(credentials)
 
-    spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
-
-    worksheet = spreadsheet.worksheet(GOOGLE_SHEET_NAME)
-
-    return worksheet
+    return client.open_by_key(GOOGLE_SHEET_ID)
 
 
 # ============================================================
-# Helpers
+# Find Jira Case
 # ============================================================
 
-def normalize(value: str) -> str:
-    return value.strip().lower()
+def find_jira_case(
+    spreadsheet,
+    jira_case: str,
+) -> Optional[Dict]:
 
-
-def is_section_heading(question: str) -> bool:
     """
-    Determine whether a row is a section/document heading
-    instead of an actual checklist question.
-    """
-
-    normalized = normalize(question)
-
-    if not normalized:
-        return True
-
-    if question.strip() in SKIP_EXACT_VALUES:
-        return True
-
-    return False
-
-
-def find_branch_column(
-    rows: List[List[str]],
-    branch_name: str,
-) -> Tuple[int, int]:
-    """
-    Search the entire spreadsheet for the branch name.
+    Search all worksheets for the Jira case.
 
     Returns:
-        (row_index, column_index)
 
-    Both indexes are zero-based.
+        {
+            "worksheet": worksheet,
+            "rows": rows,
+            "row_index": 0-based row index,
+            "column_index": 0-based column index,
+            "value": matched value
+        }
+
+    Returns None if not found.
     """
 
-    branch_normalized = normalize(branch_name)
+    jira_case_normalized = normalize(jira_case)
 
-    for row_index, row in enumerate(rows):
+    print()
+    print(
+        f"Searching all worksheets for Jira case: "
+        f"{jira_case}"
+    )
 
-        for column_index, value in enumerate(row):
+    worksheets = spreadsheet.worksheets()
 
-            if normalize(value) == branch_normalized:
-                return row_index, column_index
+    print(
+        f"Worksheets found: {len(worksheets)}"
+    )
 
-    return -1, -1
+    for worksheet in worksheets:
+
+        print(
+            f"  Checking worksheet: "
+            f"{worksheet.title}"
+        )
+
+        rows = worksheet.get_all_values()
+
+        for row_index, row in enumerate(rows):
+
+            for column_index, value in enumerate(row):
+
+                if normalize(value) == jira_case_normalized:
+
+                    print()
+                    print(
+                        f"✅ Jira case found in worksheet: "
+                        f"{worksheet.title}"
+                    )
+
+                    print(
+                        f"   Row    : {row_index + 1}"
+                    )
+
+                    print(
+                        f"   Column : {column_index + 1}"
+                    )
+
+                    return {
+                        "worksheet": worksheet,
+                        "rows": rows,
+                        "row_index": row_index,
+                        "column_index": column_index,
+                        "value": value,
+                    }
+
+    return None
 
 
 # ============================================================
-# Checklist validation
+# Validate Checklist
 # ============================================================
 
 def validate_checklist(
     rows: List[List[str]],
-    branch_name: str,
-) -> bool:
+    branch_row: int,
+    branch_column: int,
+) -> Tuple[List[Dict], List[Dict]]:
 
-    branch_row, branch_column = find_branch_column(
-        rows,
-        branch_name,
-    )
+    passed_items = []
+    failed_items = []
 
-    if branch_row == -1:
-        print()
-        print("❌ CHECKLIST VALIDATION FAILED")
-        print()
-        print(f"Feature branch: {branch_name}")
-        print()
-        print("Branch was NOT found in the Google Sheet.")
-        print()
-        print(
-            "Please add the feature branch to the checklist "
-            "spreadsheet before creating the PR."
-        )
-
-        return False
-
-    print()
-    print("======================================================")
-    print(" Google Sheet Checklist Validation")
-    print("======================================================")
-    print()
-    print(f"Feature branch : {branch_name}")
-    print(f"Branch cell    : row {branch_row + 1}, column {branch_column + 1}")
-    print()
-
-    failures = []
-    completed = 0
-    skipped = 0
-
-    # Start checking rows AFTER the branch header.
-    for row_index in range(branch_row + 1, len(rows)):
+    # Start after the Jira case row.
+    for row_index in range(
+        branch_row + 1,
+        len(rows),
+    ):
 
         row = rows[row_index]
 
-        # Column A contains checklist question/guideline.
-        if len(row) == 0:
+        if not row:
             continue
 
+        # Column A contains checklist question.
         question = row[0].strip()
 
-        # Ignore empty rows and section headings.
+        # Empty rows / headings
         if is_section_heading(question):
-            skipped += 1
             continue
 
-        # Make sure the branch column exists in this row.
+        # Branch/Jira answer column.
         if branch_column >= len(row):
             answer = ""
         else:
@@ -240,75 +369,180 @@ def validate_checklist(
 
         answer_normalized = normalize(answer)
 
-        # Empty answer
+        item = {
+            "row": row_index + 1,
+            "question": question,
+            "answer": answer or "<EMPTY>",
+        }
+
+        # ----------------------------------------------------
+        # Missing answer
+        # ----------------------------------------------------
+
         if not answer_normalized:
-            failures.append(
-                {
-                    "row": row_index + 1,
-                    "question": question,
-                    "answer": "<EMPTY>",
-                }
-            )
+
+            failed_items.append(item)
+
             continue
 
+        # ----------------------------------------------------
         # Explicit No
+        # ----------------------------------------------------
+
         if answer_normalized in INVALID_ANSWERS:
-            failures.append(
-                {
-                    "row": row_index + 1,
-                    "question": question,
-                    "answer": answer,
-                }
-            )
+
+            failed_items.append(item)
+
             continue
 
-        # Valid answer
+        # ----------------------------------------------------
+        # Standard valid answers
+        #
+        # Yes
+        # NA
+        # N/A
+        # todo
+        # ----------------------------------------------------
+
         if answer_normalized in VALID_ANSWERS:
-            completed += 1
+
+            passed_items.append(item)
+
             continue
 
+        # ----------------------------------------------------
+        # Regex based valid answers
+        #
+        # Example:
+        #
+        # DB-123
+        # DB-456
+        # ----------------------------------------------------
+
+        if is_valid_regex_answer(answer):
+
+            passed_items.append(item)
+
+            continue
+
+        # ----------------------------------------------------
         # Unknown answer
-        failures.append(
-            {
-                "row": row_index + 1,
-                "question": question,
-                "answer": answer,
-            }
+        # ----------------------------------------------------
+
+        failed_items.append(item)
+
+    return passed_items, failed_items
+
+
+# ============================================================
+# Output
+# ============================================================
+
+def print_validation_result(
+    jira_case: str,
+    worksheet_name: str,
+    passed_items: List[Dict],
+    failed_items: List[Dict],
+) -> bool:
+
+    print()
+    print("=" * 70)
+    print(" Google Sheet Checklist Validation")
+    print("=" * 70)
+
+    print()
+    print(f"Jira case : {jira_case}")
+    print(f"Worksheet : {worksheet_name}")
+
+    # --------------------------------------------------------
+    # Successful
+    # --------------------------------------------------------
+
+    print()
+    print("-" * 70)
+    print(
+        f"✅ PASSED / COMPLETED "
+        f"({len(passed_items)})"
+    )
+    print("-" * 70)
+
+    if passed_items:
+
+        for item in passed_items:
+
+            print(
+                f"[{item['answer']}] "
+                f"{item['question']}"
+            )
+
+    else:
+
+        print("No completed checklist items found.")
+
+    # --------------------------------------------------------
+    # Failed
+    # --------------------------------------------------------
+
+    print()
+    print("-" * 70)
+    print(
+        f"❌ FAILED / MISSING "
+        f"({len(failed_items)})"
+    )
+    print("-" * 70)
+
+    if failed_items:
+
+        for item in failed_items:
+
+            print(
+                f"[{item['answer']}] "
+                f"{item['question']}"
+            )
+
+    else:
+
+        print("No failed checklist items.")
+
+    # --------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------
+
+    print()
+    print("=" * 70)
+
+    if failed_items:
+
+        print(
+            "❌ CHECKLIST VALIDATION FAILED"
         )
 
-    # ========================================================
-    # Report
-    # ========================================================
+        print(
+            f"Completed : {len(passed_items)}"
+        )
 
-    print(f"Completed checklist items : {completed}")
-    print(f"Skipped section headings  : {skipped}")
-    print(f"Failed checklist items    : {len(failures)}")
-    print()
+        print(
+            f"Failed    : {len(failed_items)}"
+        )
 
-    if failures:
-
-        print("------------------------------------------------------")
-        print(" Failed Checklist Items")
-        print("------------------------------------------------------")
-
-        for item in failures:
-
-            print()
-            print(f"Row    : {item['row']}")
-            print(f"Answer : {item['answer']}")
-            print(f"Check  : {item['question']}")
-
-        print()
-        print("======================================================")
-        print("❌ CHECKLIST VALIDATION FAILED")
-        print("======================================================")
+        print("=" * 70)
         print()
 
         return False
 
-    print("======================================================")
-    print("✅ CHECKLIST VALIDATION PASSED")
-    print("======================================================")
+    print(
+        "✅ CHECKLIST VALIDATION PASSED"
+    )
+
+    print(
+        f"Completed : {len(passed_items)}"
+    )
+
+    print(
+        f"Failed    : {len(failed_items)}"
+    )
+
+    print("=" * 70)
     print()
 
     return True
@@ -322,36 +556,131 @@ def main():
 
     try:
 
-        branch_name = get_current_git_branch()
+        # ----------------------------------------------------
+        # 1. Get Git branch
+        # ----------------------------------------------------
 
         print()
-        print(f"Checking Google Sheet for branch: {branch_name}")
+        print(
+            "DEBUG: Reading Git branch..."
+        )
 
-        worksheet = connect_to_google_sheet()
+        branch_name = get_current_git_branch()
 
-        rows = worksheet.get_all_values()
+        print(
+            f"Git branch: {branch_name}"
+        )
 
-        if not rows:
-            raise RuntimeError(
-                "Google Sheet is empty."
+        # ----------------------------------------------------
+        # 2. Convert branch to Jira case
+        # ----------------------------------------------------
+
+        jira_case = get_jira_case_from_branch(
+            branch_name
+        )
+
+        print(
+            f"Jira case: {jira_case}"
+        )
+
+        # ----------------------------------------------------
+        # 3. Connect to Google Spreadsheet
+        # ----------------------------------------------------
+
+        print()
+        print(
+            "DEBUG: Connecting to Google Spreadsheet..."
+        )
+
+        spreadsheet = connect_to_google_spreadsheet()
+
+        print(
+            f"Spreadsheet: {spreadsheet.title}"
+        )
+
+        # ----------------------------------------------------
+        # 4. Search all worksheets
+        # ----------------------------------------------------
+
+        result = find_jira_case(
+            spreadsheet,
+            jira_case,
+        )
+
+        # ----------------------------------------------------
+        # 5. Jira case not found
+        # ----------------------------------------------------
+
+        if result is None:
+
+            print()
+            print("=" * 70)
+            print("❌ CHECKLIST VALIDATION FAILED")
+            print("=" * 70)
+
+            print()
+            print(
+                f"Jira case '{jira_case}' was not found "
+                f"in any worksheet."
             )
 
-        success = validate_checklist(
-            rows,
-            branch_name,
+            print()
+            print(
+                "Please add the Jira case to the Google "
+                "Sheet before creating the PR."
+            )
+
+            print()
+
+            sys.exit(1)
+
+        # ----------------------------------------------------
+        # 6. Validate checklist
+        # ----------------------------------------------------
+
+        passed_items, failed_items = validate_checklist(
+            rows=result["rows"],
+            branch_row=result["row_index"],
+            branch_column=result["column_index"],
         )
+
+        # ----------------------------------------------------
+        # 7. Print result
+        # ----------------------------------------------------
+
+        success = print_validation_result(
+            jira_case=jira_case,
+            worksheet_name=result["worksheet"].title,
+            passed_items=passed_items,
+            failed_items=failed_items,
+        )
+
+        # ----------------------------------------------------
+        # 8. Exit code
+        # ----------------------------------------------------
 
         sys.exit(0 if success else 1)
 
     except Exception as exc:
 
         print()
+        print("=" * 70)
         print("❌ ERROR")
+        print("=" * 70)
+
         print()
-        print(str(exc))
+        print(
+            f"Exception type: {type(exc).__name__}"
+        )
+
+        print(
+            f"Exception: {exc}"
+        )
+
         print()
 
-        sys.exit(2)
+        # Print full traceback while debugging.
+        raise
 
 
 if __name__ == "__main__":

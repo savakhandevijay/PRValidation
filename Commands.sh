@@ -29,3 +29,8 @@ php -r "require 'src/www/wss2/vendor/autoload.php'; var_dump(class_exists('Codec
 
 # find which test file is referencing Codeception\TestCase\Test
 grep -Rni "Codeception\\\\TestCase\\\\Test" src/www/wss2 --include="*.php"
+
+# get the current git branch name in the /var/www/app/src directory
+git -C /var/www/app/src branch --show-current
+
+python3 /var/www/app/scripts/check_google_sheet.py
