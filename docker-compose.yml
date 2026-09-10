@@ -12,7 +12,6 @@ services:
       - ./src:/var/www/app/src
       - ./phpstan:/var/www/app/phpstan
       - ./phpstan.neon:/var/www/app/phpstan.neon
-      - ./scripts:/var/www/app/scripts
       - ./logs:/var/logs
       - ./scripts/config/google-service-account.json:/run/secrets/google-service-account.json:ro
     secrets:

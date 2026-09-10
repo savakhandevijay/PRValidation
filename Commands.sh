@@ -34,5 +34,3 @@ grep -Rni "Codeception\\\\TestCase\\\\Test" src/www/wss2 --include="*.php"
 git -C /var/www/app/src branch --show-current
 
 python3 /var/www/app/scripts/check_google_sheet.py
-
-./vendor/bin/phpstan analyse src/www/wss2/test.php --configuration=/var/www/app/phpstan.neon --memory-limit=2G
