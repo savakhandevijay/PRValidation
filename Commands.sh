@@ -19,7 +19,7 @@ vendor/bin/phpstan clear-result-cache
 rm -rf var/phpstan/cache && vendor/bin/phpstan analyse --memory-limit=1G
 
 # Run PHPStan analysis on the AustraliaPostApi.php file with level 6 and memory limit of 1G, outputting errors to logs/phpstan-errors.txt
-./vendor/bin/phpstan analyse src/www/wss2/console/controllers/StoresController.php -l 6 --memory-limit=1G --error-format=raw > logs/phpstan-errors.txt 2>&1
+./vendor/bin/phpstan analyse src/www/wss2/test.php -l 6 --memory-limit=1G -vvv --error-format=raw > logs/phpstan-errors.txt 2>&1
 
 # Search for Nette\DI\ServiceCreationException in the project excluding certain directories
 grep -R 'Codeception\TestCase\Test' . --exclude-dir=.git --exclude-dir=node_modules  --exclude-dir=vendor
@@ -34,3 +34,5 @@ grep -Rni "Codeception\\\\TestCase\\\\Test" src/www/wss2 --include="*.php"
 git -C /var/www/app/src branch --show-current
 
 python3 /var/www/app/scripts/check_google_sheet.py
+
+./vendor/bin/phpstan analyse src/www/wss2/test.php --configuration=/var/www/app/phpstan.neon --memory-limit=2G
