@@ -1,6 +1,8 @@
 {
     "name": "cex-it/prvalidation",
+    "description": "PR validation scripts and PHPStan rules.",
     "version": "1.0.0",
+    "license": "MIT",
     "config": {
         "allow-plugins": {
             "phpstan/extension-installer": true
@@ -18,12 +20,10 @@
         "cs-check": "sh ./scripts/cs-changed-files.sh",
         "dev-check": "python3 /var/www/app/scripts/check_google_sheet.py",
         "cs-fix": "php -d memory_limit=1G ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php",
-        "stan": "sh ./scripts/stan-changed-files.sh develop --memory-limit=1G",
+        "stan": "sh ./scripts/stan-changed-files.sh",
         "clear-cache": "vendor/bin/phpstan clear-result-cache && composer dump-autoload",
-        "quality": [
-            "@composer validate --strict",
+        "checks": [
             "@lint",
-            "@cs-check",
             "@stan"
         ]
     },

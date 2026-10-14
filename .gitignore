@@ -3,3 +3,4 @@ var/phpstan
 # src/
 scripts/config/google-service-account.json
 .venv/
+logs

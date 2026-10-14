@@ -66,7 +66,7 @@ mkdir -p /var/logs
 
 php "${PROJECT_ROOT}/vendor/bin/phpstan" analyse \
     --configuration="${PHPSTAN_CONFIG}" \
-    --memory-limit=1G \
+    --memory-limit=2G \
     --error-format=table \
     --no-progress \
     --no-ansi \

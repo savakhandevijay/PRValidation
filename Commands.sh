@@ -34,3 +34,7 @@ grep -Rni "Codeception\\\\TestCase\\\\Test" src/www/wss2 --include="*.php"
 git -C /var/www/app/src branch --show-current
 
 python3 /var/www/app/scripts/check_google_sheet.py
+
+rg -n "class Member|function getTradeItemPriceByWebOrderNumber" www/wss2 --glob '*.php'
+
+php scripts/pr-context.php --base origin/develop --app-root "$PWD/src/www/wss2" --depth 2 --output /tmp/pr-review-context.txt
